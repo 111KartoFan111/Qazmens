@@ -17,8 +17,12 @@ import axios from 'axios';
 import { t } from 'i18next';
 
 const conditionKeys = ['excellent', 'good', 'fair', 'poor'];
-const renovationStatuses = [t('recentlyRenovated'), t('partiallyRenovated'), t('needsRenovation'), t('original')];
-
+const renovationStatuses = [
+  { value: 'recentlyRenovated', label: t('recentlyRenovated') },
+  { value: 'partiallyRenovated', label: t('partiallyRenovated') },
+  { value: 'needsRenovation', label: t('needsRenovation') },
+  { value: 'original', label: t('original') }
+];
 function PropertyForm() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -89,7 +93,7 @@ function PropertyForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:8000/api/valuate', {
+      const response = await axios.post('http://127.0.0.1:8000/api/properties/', {
         subject_property: subjectProperty,
         comparable_properties: comparableProperties,
       });
@@ -184,11 +188,11 @@ function PropertyForm() {
                 onChange={handleSubjectPropertyChange}
                 required
               >
-                {renovationStatuses.map((option) => (
-                  <MenuItem key={option} value={option}>
-                    {typeof option === 'string' ? option.replace('_', ' ') : ''}
-                  </MenuItem>
-                ))}
+              {renovationStatuses.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
               </TextField>
             </Grid>
             <Grid item xs={12} md={6}>
@@ -292,11 +296,11 @@ function PropertyForm() {
                     onChange={(e) => handleComparablePropertyChange(index, e)}
                     required
                   >
-                    {renovationStatuses.map((option) => (
-                      <MenuItem key={option} value={option}>
-                        {typeof option === 'string' ? option.replace('_', ' ') : ''}
-                      </MenuItem>
-                    ))}
+                  {renovationStatuses.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
                   </TextField>
                 </Grid>
                 <Grid item xs={12} md={6}>

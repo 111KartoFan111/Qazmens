@@ -122,7 +122,7 @@ function Navigation({ activeTab, onTabChange }) {
           {/* User Menu */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              <Typography variant="body2" sx={{ fontWeight: 500 , color: 'text.primary' }}>
                 {user?.full_name || user?.username}
               </Typography>
               <Chip

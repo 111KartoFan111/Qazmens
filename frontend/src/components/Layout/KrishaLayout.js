@@ -1,5 +1,6 @@
 // frontend/src/components/Layout/KrishaLayout.js
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   AppBar,
@@ -46,6 +47,8 @@ const KrishaLayout = ({ children, currentPage = 'dashboard', breadcrumbs = [] })
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   
   const [anchorEl, setAnchorEl] = useState(null);
   const [notificationAnchor, setNotificationAnchor] = useState(null);
@@ -72,36 +75,42 @@ const KrishaLayout = ({ children, currentPage = 'dashboard', breadcrumbs = [] })
     handleMenuClose();
   };
 
+  // Функция навигации
+  const handleNavigation = (path) => {
+    navigate(path);
+    setMobileMenuOpen(false); // Закрываем мобильное меню при навигации
+  };
+
   const navigationItems = [
     { 
       name: 'Дашборд', 
       icon: <Home />, 
       path: '/dashboard',
-      current: currentPage === 'dashboard'
+      current: location.pathname === '/dashboard' || location.pathname === '/dashboard/'
     },
     { 
       name: 'Оценки', 
       icon: <Assessment />, 
-      path: '/valuations',
-      current: currentPage === 'valuations'
+      path: '/dashboard/valuations',
+      current: location.pathname.includes('/valuations')
     },
     { 
       name: 'Клиенты', 
       icon: <People />, 
-      path: '/clients',
-      current: currentPage === 'clients'
+      path: '/dashboard/clients',
+      current: location.pathname.includes('/clients')
     },
     { 
       name: 'Аналитика', 
       icon: <TrendingUp />, 
-      path: '/analytics',
-      current: currentPage === 'analytics'
+      path: '/dashboard/analytics',
+      current: location.pathname.includes('/analytics')
     },
     { 
       name: 'Карта', 
       icon: <MapIcon />, 
-      path: '/map',
-      current: currentPage === 'map'
+      path: '/dashboard/map',
+      current: location.pathname.includes('/map')
     }
   ];
 
@@ -132,8 +141,10 @@ const KrishaLayout = ({ children, currentPage = 'dashboard', breadcrumbs = [] })
               sx={{
                 fontWeight: 'bold',
                 color: '#FF6B35',
-                mr: 1
+                mr: 1,
+                cursor: 'pointer'
               }}
+              onClick={() => handleNavigation('/dashboard')}
             >
               Qazmen's
             </Typography>
@@ -146,6 +157,7 @@ const KrishaLayout = ({ children, currentPage = 'dashboard', breadcrumbs = [] })
                 <Button
                   key={item.name}
                   startIcon={item.icon}
+                  onClick={() => handleNavigation(item.path)}
                   sx={{
                     color: item.current ? '#FF6B35' : '#666',
                     bgcolor: item.current ? 'rgba(255, 107, 53, 0.1)' : 'transparent',
@@ -181,6 +193,7 @@ const KrishaLayout = ({ children, currentPage = 'dashboard', breadcrumbs = [] })
             <Button
               variant="contained"
               startIcon={<Add />}
+              onClick={() => handleNavigation('/dashboard/valuations/new')}
               sx={{
                 bgcolor: '#FF6B35',
                 '&:hover': { bgcolor: '#E55A2B' },
@@ -228,12 +241,13 @@ const KrishaLayout = ({ children, currentPage = 'dashboard', breadcrumbs = [] })
           >
             <Link 
               color="inherit" 
-              href="#" 
+              onClick={() => handleNavigation('/dashboard')}
               sx={{ 
                 display: 'flex', 
                 alignItems: 'center',
                 color: '#666',
                 textDecoration: 'none',
+                cursor: 'pointer',
                 '&:hover': { color: '#FF6B35' }
               }}
             >
@@ -292,12 +306,12 @@ const KrishaLayout = ({ children, currentPage = 'dashboard', breadcrumbs = [] })
         
         <Divider />
         
-        <MenuItem onClick={handleMenuClose}>
+        <MenuItem onClick={() => { handleMenuClose(); handleNavigation('/dashboard/profile'); }}>
           <AccountCircle sx={{ mr: 1 }} />
           Профиль
         </MenuItem>
         
-        <MenuItem onClick={handleMenuClose}>
+        <MenuItem onClick={() => { handleMenuClose(); handleNavigation('/dashboard/settings'); }}>
           <Settings sx={{ mr: 1 }} />
           Настройки
         </MenuItem>
@@ -385,6 +399,7 @@ const KrishaLayout = ({ children, currentPage = 'dashboard', breadcrumbs = [] })
               key={item.name}
               fullWidth
               startIcon={item.icon}
+              onClick={() => handleNavigation(item.path)}
               sx={{
                 justifyContent: 'flex-start',
                 color: item.current ? '#FF6B35' : '#666',
@@ -394,7 +409,6 @@ const KrishaLayout = ({ children, currentPage = 'dashboard', breadcrumbs = [] })
                 py: 1.5,
                 px: 3
               }}
-              onClick={() => setMobileMenuOpen(false)}
             >
               {item.name}
             </Button>

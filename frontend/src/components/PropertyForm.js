@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Container,
   Paper,
@@ -13,11 +14,13 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import axios from 'axios';
+import { t } from 'i18next';
 
-const conditions = ['excellent', 'good', 'fair', 'poor'];
-const renovationStatuses = ['recently_renovated', 'partially_renovated', 'needs_renovation', 'original'];
+const conditionKeys = ['excellent', 'good', 'fair', 'poor'];
+const renovationStatuses = [t('recentlyRenovated'), t('partiallyRenovated'), t('needsRenovation'), t('original')];
 
 function PropertyForm() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [subjectProperty, setSubjectProperty] = useState({
     address: '',
@@ -103,18 +106,18 @@ function PropertyForm() {
     <Container maxWidth="lg">
       <Paper sx={{ p: 4, mt: 4 }}>
         <Typography variant="h4" gutterBottom>
-          Property Valuation Form
+          {t('propertyValuation')}
         </Typography>
 
         <form onSubmit={handleSubmit}>
           <Typography variant="h5" sx={{ mt: 4, mb: 2 }}>
-            Subject Property
+            {t('subjectProperty')}
           </Typography>
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Address"
+                label={t('address')}
                 name="address"
                 value={subjectProperty.address}
                 onChange={handleSubjectPropertyChange}
@@ -124,7 +127,7 @@ function PropertyForm() {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Area (sq ft)"
+                label={t('area')}
                 name="area"
                 type="number"
                 value={subjectProperty.area}
@@ -135,7 +138,7 @@ function PropertyForm() {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Floor Level"
+                label={t('floorLevel')}
                 name="floor_level"
                 type="number"
                 value={subjectProperty.floor_level}
@@ -147,15 +150,15 @@ function PropertyForm() {
               <TextField
                 fullWidth
                 select
-                label="Condition"
+                label={t('condition')}
                 name="condition"
                 value={subjectProperty.condition}
                 onChange={handleSubjectPropertyChange}
                 required
               >
-                {conditions.map((option) => (
-                  <MenuItem key={option} value={option}>
-                    {option}
+                {conditionKeys.map((key) => (
+                  <MenuItem key={key} value={key}>
+                    {t(key)}
                   </MenuItem>
                 ))}
               </TextField>
@@ -163,7 +166,7 @@ function PropertyForm() {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Distance from Center (km)"
+                label={t('distanceFromCenter')}
                 name="distance_from_center"
                 type="number"
                 value={subjectProperty.distance_from_center}
@@ -175,7 +178,7 @@ function PropertyForm() {
               <TextField
                 fullWidth
                 select
-                label="Renovation Status"
+                label={t('renovationStatus')}
                 name="renovation_status"
                 value={subjectProperty.renovation_status}
                 onChange={handleSubjectPropertyChange}
@@ -183,7 +186,7 @@ function PropertyForm() {
               >
                 {renovationStatuses.map((option) => (
                   <MenuItem key={option} value={option}>
-                    {option.replace('_', ' ')}
+                    {typeof option === 'string' ? option.replace('_', ' ') : ''}
                   </MenuItem>
                 ))}
               </TextField>
@@ -191,7 +194,7 @@ function PropertyForm() {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Price"
+                label={t('price')}
                 name="price"
                 type="number"
                 value={subjectProperty.price}
@@ -202,13 +205,13 @@ function PropertyForm() {
           </Grid>
 
           <Typography variant="h5" sx={{ mt: 4, mb: 2 }}>
-            Comparable Properties
+          {t('comparableProperties')}
           </Typography>
           {comparableProperties.map((property, index) => (
             <Box key={index} sx={{ mb: 4, p: 2, border: '1px solid #ddd', borderRadius: 1 }}>
               <Grid container spacing={3}>
                 <Grid item xs={11}>
-                  <Typography variant="h6">Comparable Property {index + 1}</Typography>
+                  <Typography variant="h6">{t('comparablePropertiesnum')} {index + 1}</Typography>
                 </Grid>
                 <Grid item xs={1}>
                   <IconButton
@@ -222,7 +225,7 @@ function PropertyForm() {
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Address"
+                    label={t('address')}
                     name="address"
                     value={property.address}
                     onChange={(e) => handleComparablePropertyChange(index, e)}
@@ -232,7 +235,7 @@ function PropertyForm() {
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Area (sq ft)"
+                    label={t('area')}
                     name="area"
                     type="number"
                     value={property.area}
@@ -243,7 +246,7 @@ function PropertyForm() {
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Floor Level"
+                    label={t('floorLevel')}
                     name="floor_level"
                     type="number"
                     value={property.floor_level}
@@ -255,23 +258,23 @@ function PropertyForm() {
                   <TextField
                     fullWidth
                     select
-                    label="Condition"
+                    label={t('condition')}
                     name="condition"
                     value={property.condition}
                     onChange={(e) => handleComparablePropertyChange(index, e)}
                     required
                   >
-                    {conditions.map((option) => (
-                      <MenuItem key={option} value={option}>
-                        {option}
-                      </MenuItem>
-                    ))}
+                  {conditionKeys.map((key) => (
+                    <MenuItem key={key} value={key}>
+                      {t(key)}
+                    </MenuItem>
+                  ))}
                   </TextField>
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Distance from Center (km)"
+                    label={t('distanceFromCenter')}
                     name="distance_from_center"
                     type="number"
                     value={property.distance_from_center}
@@ -283,7 +286,7 @@ function PropertyForm() {
                   <TextField
                     fullWidth
                     select
-                    label="Renovation Status"
+                    label={t('renovationStatus')}
                     name="renovation_status"
                     value={property.renovation_status}
                     onChange={(e) => handleComparablePropertyChange(index, e)}
@@ -291,7 +294,7 @@ function PropertyForm() {
                   >
                     {renovationStatuses.map((option) => (
                       <MenuItem key={option} value={option}>
-                        {option.replace('_', ' ')}
+                        {typeof option === 'string' ? option.replace('_', ' ') : ''}
                       </MenuItem>
                     ))}
                   </TextField>
@@ -299,7 +302,7 @@ function PropertyForm() {
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Price"
+                    label={t('price')}
                     name="price"
                     type="number"
                     value={property.price}
@@ -317,7 +320,7 @@ function PropertyForm() {
               startIcon={<AddIcon />}
               onClick={addComparableProperty}
             >
-              Add Comparable Property
+              {t('addComparable')}
             </Button>
           </Box>
 
@@ -328,7 +331,7 @@ function PropertyForm() {
             size="large"
             fullWidth
           >
-            Calculate Valuation
+            {t('submitValuation')}
           </Button>
         </form>
       </Paper>

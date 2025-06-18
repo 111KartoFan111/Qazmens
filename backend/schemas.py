@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+# backend/schemas.py
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
@@ -41,12 +42,11 @@ class PropertyUpdate(BaseModel):
     features: Optional[List[PropertyFeature]] = None
 
 class Property(PropertyBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        orm_mode = True
 
 # Valuation schemas
 class Adjustment(BaseModel):
@@ -60,6 +60,8 @@ class ValuationRequest(BaseModel):
     adjustment_criteria: Optional[Dict[str, Any]] = None
 
 class ValuationResult(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     subject_property: Property
     comparable_properties: List[Property]
     adjustments: Dict[str, List[Adjustment]]
@@ -67,10 +69,9 @@ class ValuationResult(BaseModel):
     confidence_score: float
     created_at: datetime
 
-    class Config:
-        orm_mode = True
-
 class ValuationHistory(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     property_id: int
     valuation_date: datetime
@@ -81,9 +82,6 @@ class ValuationHistory(BaseModel):
     comparable_properties: List[int]
     created_by: str
     notes: Optional[str] = None
-
-    class Config:
-        orm_mode = True
 
 # User schemas
 class UserBase(BaseModel):
@@ -104,13 +102,20 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 class User(UserBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     is_active: bool
     created_at: datetime
     last_login: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True
+# Token schemas
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
 
 # Adjustment coefficient schemas
 class AdjustmentCoefficientBase(BaseModel):
@@ -129,10 +134,9 @@ class AdjustmentCoefficientUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 class AdjustmentCoefficient(AdjustmentCoefficientBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     created_at: datetime
     updated_at: datetime
     created_by: str
-
-    class Config:
-        orm_mode = True 

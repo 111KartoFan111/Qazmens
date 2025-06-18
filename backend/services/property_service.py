@@ -1,3 +1,4 @@
+# backend/services/property_service.py
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from models import Property
@@ -7,7 +8,19 @@ from fastapi import HTTPException, status
 class PropertyService:
     @staticmethod
     def create_property(db: Session, property_data: PropertyCreate) -> Property:
-        db_property = Property(**property_data.dict())
+        # Convert Pydantic model to dict and handle nested objects
+        property_dict = property_data.model_dump()
+        
+        # Handle location separately as JSON
+        location_data = property_dict.pop('location', None)
+        features_data = property_dict.pop('features', [])
+        
+        db_property = Property(
+            **property_dict,
+            location=location_data,
+            features=features_data
+        )
+        
         db.add(db_property)
         db.commit()
         db.refresh(db_property)
@@ -49,9 +62,20 @@ class PropertyService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Property not found"
             )
+        
+        # Convert to dict and exclude unset values
+        update_data = property_data.model_dump(exclude_unset=True)
+        
+        # Handle nested objects
+        if 'location' in update_data:
+            db_property.location = update_data['location']
+        if 'features' in update_data:
+            db_property.features = update_data['features']
             
-        for key, value in property_data.dict(exclude_unset=True).items():
-            setattr(db_property, key, value)
+        # Update other fields
+        for key, value in update_data.items():
+            if key not in ['location', 'features'] and hasattr(db_property, key):
+                setattr(db_property, key, value)
             
         db.commit()
         db.refresh(db_property)
@@ -90,6 +114,9 @@ class PropertyService:
         skip: int = 0,
         limit: int = 100
     ) -> List[Property]:
-        # TODO: Implement geospatial search
+        # TODO: Implement geospatial search with PostGIS or similar
         # For now, return all properties
-        return db.query(Property).offset(skip).limit(limit).all() 
+        return db.query(Property).offset(skip).limit(limit).all()
+
+# Create instance
+property_service = PropertyService()

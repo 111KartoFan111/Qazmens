@@ -1,16 +1,27 @@
+// frontend/src/App.js
 import React, { useState, useMemo } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { useTranslation } from 'react-i18next';
 import { Box, Container, Fade } from '@mui/material';
+
+// Import components
 import Navigation from './components/Navigation';
 import PropertyForm from './components/PropertyForm';
 import ValuationResults from './components/ValuationResults';
 import Settings from './components/Settings';
+import Login from './components/Auth/Login';
+import Register from './components/Auth/Register';
+import ProtectedRoute from './components/Auth/ProtectedRoute';
+
+// Import contexts
+import { AuthProvider } from './contexts/AuthContext';
+
 import './i18n';
 import './styles/global.css';
 
-function App() {
+function AppContent() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState(0);
   const [themeMode, setThemeMode] = useState('light');
@@ -159,24 +170,49 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box
-        sx={{
-          minHeight: '100vh',
-          background: themeMode === 'light'
-            ? 'linear-gradient(135deg, #F5F5F7 0%, #E5E5EA 100%)'
-            : 'linear-gradient(135deg, #1C1C1E 0%, #2C2C2E 100%)',
-          transform: `scale(${zoom / 100})`,
-          transformOrigin: 'top left',
-          transition: 'all 0.3s ease-in-out',
-        }}
-      >
-        <Navigation activeTab={activeTab} onTabChange={handleTabChange} />
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-          {renderContent()}
-        </Container>
-      </Box>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        
+        {/* Protected routes */}
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute>
+              <Box
+                sx={{
+                  minHeight: '100vh',
+                  background: themeMode === 'light'
+                    ? 'linear-gradient(135deg, #F5F5F7 0%, #E5E5EA 100%)'
+                    : 'linear-gradient(135deg, #1C1C1E 0%, #2C2C2E 100%)',
+                  transform: `scale(${zoom / 100})`,
+                  transformOrigin: 'top left',
+                  transition: 'all 0.3s ease-in-out',
+                }}
+              >
+                <Navigation activeTab={activeTab} onTabChange={handleTabChange} />
+                <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                  {renderContent()}
+                </Container>
+              </Box>
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Redirect root to home */}
+        <Route path="/" element={<Navigate to="/home" replace />} />
+      </Routes>
     </ThemeProvider>
   );
 }
 
-export default App; 
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
+
+export default App;

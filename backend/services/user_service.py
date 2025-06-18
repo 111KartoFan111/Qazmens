@@ -1,3 +1,4 @@
+# backend/services/user_service.py
 from sqlalchemy.orm import Session
 from typing import Optional
 import models
@@ -7,6 +8,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from database import get_db
 import os
 
 # Security configuration
@@ -15,7 +17,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 class UserService:
     def create_user(
@@ -32,6 +34,14 @@ class UserService:
             raise HTTPException(
                 status_code=400,
                 detail="Email already registered"
+            )
+
+        # Check if username already exists
+        db_user = self.get_user_by_username(db, username=user.username)
+        if db_user:
+            raise HTTPException(
+                status_code=400,
+                detail="Username already taken"
             )
 
         # Create new user
@@ -70,6 +80,16 @@ class UserService:
         """
         return db.query(models.User).filter(models.User.email == email).first()
 
+    def get_user_by_username(
+        self,
+        db: Session,
+        username: str
+    ) -> Optional[models.User]:
+        """
+        Get user by username
+        """
+        return db.query(models.User).filter(models.User.username == username).first()
+
     def get_users(
         self,
         db: Session,
@@ -94,7 +114,7 @@ class UserService:
         if not db_user:
             return None
 
-        update_data = user_update.dict(exclude_unset=True)
+        update_data = user_update.model_dump(exclude_unset=True)
         if "password" in update_data:
             update_data["hashed_password"] = pwd_context.hash(update_data.pop("password"))
 
@@ -154,10 +174,10 @@ class UserService:
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
         return encoded_jwt
 
-    async def get_current_user(
+    def get_current_user(
         self,
-        db: Session,
-        token: str = Depends(oauth2_scheme)
+        token: str = Depends(oauth2_scheme),
+        db: Session = Depends(get_db)
     ) -> models.User:
         """
         Get current user from JWT token
@@ -180,9 +200,9 @@ class UserService:
             raise credentials_exception
         return user
 
-    async def get_current_active_user(
+    def get_current_active_user(
         self,
-        current_user: models.User = Depends(get_current_user)
+        current_user: models.User = Depends(lambda: user_service.get_current_user)
     ) -> models.User:
         """
         Get current active user
@@ -204,4 +224,4 @@ class UserService:
             db_user.last_login = datetime.utcnow()
             db.commit()
 
-user_service = UserService() 
+user_service = UserService()

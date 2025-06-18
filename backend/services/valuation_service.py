@@ -1,3 +1,4 @@
+# backend/services/valuation_service.py
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 import models
@@ -24,7 +25,7 @@ class ValuationService:
                 subject_property,
                 comp_property
             )
-            adjustments[comp_property.id] = property_adjustments
+            adjustments[str(comp_property.id)] = property_adjustments
 
             # Calculate adjusted price
             adjusted_price = self._calculate_adjusted_price(
@@ -150,7 +151,7 @@ class ValuationService:
         Calculate adjustment for area difference
         """
         area_difference = subject_area - comparable_area
-        adjustment_rate = 0.01  # 1% per square meter
+        adjustment_rate = 100  # $100 per square meter
         return area_difference * adjustment_rate
 
     def _calculate_floor_adjustment(
@@ -167,9 +168,9 @@ class ValuationService:
         subject_normalized = subject_floor / subject_total_floors
         comparable_normalized = comparable_floor / comparable_total_floors
         
-        # Calculate adjustment (2% per floor level difference)
+        # Calculate adjustment (2000 per normalized floor level difference)
         floor_difference = subject_normalized - comparable_normalized
-        return floor_difference * 2
+        return floor_difference * 2000
 
     def _calculate_condition_adjustment(
         self,
@@ -185,7 +186,8 @@ class ValuationService:
             "fair": 0.8,
             "poor": 0.7
         }
-        return (condition_values[subject_condition] - condition_values[comparable_condition]) * 100
+        condition_diff = condition_values.get(subject_condition, 0.8) - condition_values.get(comparable_condition, 0.8)
+        return condition_diff * 5000  # $5000 per condition level
 
     def _calculate_distance_adjustment(
         self,
@@ -195,19 +197,22 @@ class ValuationService:
         """
         Calculate adjustment for distance difference using Haversine formula
         """
-        R = 6371  # Earth's radius in km
-        dLat = math.radians(comparable_location.lat - subject_location.lat)
-        dLon = math.radians(comparable_location.lng - subject_location.lng)
-        lat1 = math.radians(subject_location.lat)
-        lat2 = math.radians(comparable_location.lat)
+        try:
+            R = 6371  # Earth's radius in km
+            dLat = math.radians(comparable_location.lat - subject_location.lat)
+            dLon = math.radians(comparable_location.lng - subject_location.lng)
+            lat1 = math.radians(subject_location.lat)
+            lat2 = math.radians(comparable_location.lat)
 
-        a = math.sin(dLat/2) * math.sin(dLat/2) + \
-            math.sin(dLon/2) * math.sin(dLon/2) * math.cos(lat1) * math.cos(lat2)
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-        distance = R * c
+            a = math.sin(dLat/2) * math.sin(dLat/2) + \
+                math.sin(dLon/2) * math.sin(dLon/2) * math.cos(lat1) * math.cos(lat2)
+            c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+            distance = R * c
 
-        # Adjust price based on distance (0.5% per km)
-        return distance * 0.005
+            # Adjust price based on distance (500 per km)
+            return -distance * 500  # Negative because farther is generally worse
+        except:
+            return 0.0
 
     def _calculate_renovation_adjustment(
         self,
@@ -218,12 +223,13 @@ class ValuationService:
         Calculate adjustment for renovation status difference
         """
         renovation_values = {
-            "new": 1.0,
-            "renovated": 0.95,
-            "partial": 0.9,
-            "none": 0.85
+            "recentlyRenovated": 1.0,
+            "partiallyRenovated": 0.8,
+            "needsRenovation": 0.4,
+            "original": 0.6
         }
-        return (renovation_values[subject_renovation] - renovation_values[comparable_renovation]) * 100
+        renovation_diff = renovation_values.get(subject_renovation, 0.6) - renovation_values.get(comparable_renovation, 0.6)
+        return renovation_diff * 8000  # $8000 per renovation level
 
     def _calculate_feature_adjustment(
         self,
@@ -233,9 +239,12 @@ class ValuationService:
         """
         Calculate adjustment for additional feature difference
         """
-        feature_difference = subject_feature.value - comparable_feature.value
-        adjustment_rate = 0.02  # 2% per unit difference
-        return feature_difference * adjustment_rate
+        try:
+            feature_difference = subject_feature.value - comparable_feature.value
+            adjustment_rate = 50  # $50 per unit difference
+            return feature_difference * adjustment_rate
+        except:
+            return 0.0
 
     def _calculate_adjusted_price(
         self,
@@ -246,7 +255,7 @@ class ValuationService:
         Calculate adjusted price based on all adjustments
         """
         total_adjustment = sum(adj.value for adj in adjustments)
-        return original_price * (1 + total_adjustment)
+        return original_price + total_adjustment
 
     def _calculate_final_valuation(
         self,
@@ -269,8 +278,8 @@ class ValuationService:
         """
         Calculate confidence score based on price dispersion
         """
-        if not adjusted_prices:
-            return 0.0
+        if not adjusted_prices or len(adjusted_prices) < 2:
+            return 0.5
 
         # Calculate standard deviation
         mean = sum(adjusted_prices) / len(adjusted_prices)
@@ -281,7 +290,7 @@ class ValuationService:
         cv = std_dev / mean if mean != 0 else float('inf')
 
         # Convert to confidence score (0-1)
-        confidence = 1 / (1 + cv)
+        confidence = 1 / (1 + cv) if cv != float('inf') else 0.5
         return min(max(confidence, 0), 1)
 
     def _save_to_history(
@@ -292,19 +301,24 @@ class ValuationService:
         """
         Save valuation result to history
         """
-        history_item = models.ValuationHistory(
-            property_id=result.subject_property.id,
-            valuation_date=result.created_at,
-            valuation_type="subject",
-            original_price=result.subject_property.price,
-            adjusted_price=result.final_valuation,
-            adjustments=result.adjustments,
-            comparable_properties=[p.id for p in result.comparable_properties],
-            created_by="system",  # TODO: Add user authentication
-            notes=f"Confidence score: {result.confidence_score:.2f}"
-        )
-        db.add(history_item)
-        db.commit()
+        try:
+            history_item = models.ValuationHistory(
+                property_id=result.subject_property.id,
+                valuation_date=result.created_at,
+                valuation_type="subject",
+                original_price=result.subject_property.price,
+                adjusted_price=result.final_valuation,
+                adjustments=result.adjustments,
+                comparable_properties=[p.id for p in result.comparable_properties],
+                created_by="system",  # TODO: Add user authentication
+                notes=f"Confidence score: {result.confidence_score:.2f}"
+            )
+            db.add(history_item)
+            db.commit()
+        except Exception as e:
+            print(f"Error saving to history: {e}")
+            # Don't fail the whole request if history save fails
+            pass
 
     def get_valuation_history(
         self,
@@ -333,4 +347,4 @@ class ValuationService:
             .filter(models.ValuationHistory.id == history_id)\
             .first()
 
-valuation_service = ValuationService() 
+valuation_service = ValuationService()

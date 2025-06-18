@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Container,
@@ -13,14 +13,19 @@ import {
   Switch,
   FormControlLabel,
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 
-function Settings({ themeMode, onThemeChange, fontSize, onFontSizeChange, zoom, onZoomChange }) {
+function Settings() {
   const { t, i18n } = useTranslation();
-  const theme = useTheme();
+  const [themeMode, setThemeMode] = useState('light');
+  const [fontSize, setFontSize] = useState(16);
+  const [zoom, setZoom] = useState(100);
 
   const handleLanguageChange = (event) => {
     i18n.changeLanguage(event.target.value);
+  };
+
+  const handleThemeChange = (checked) => {
+    setThemeMode(checked ? 'dark' : 'light');
   };
 
   return (
@@ -49,7 +54,7 @@ function Settings({ themeMode, onThemeChange, fontSize, onFontSizeChange, zoom, 
               control={
                 <Switch
                   checked={themeMode === 'dark'}
-                  onChange={(e) => onThemeChange(e.target.checked ? 'dark' : 'light')}
+                  onChange={(e) => handleThemeChange(e.target.checked)}
                 />
               }
               label={t('theme')}
@@ -60,7 +65,7 @@ function Settings({ themeMode, onThemeChange, fontSize, onFontSizeChange, zoom, 
             <Typography gutterBottom>{t('fontSize')}</Typography>
             <Slider
               value={fontSize}
-              onChange={(_, value) => onFontSizeChange(value)}
+              onChange={(_, value) => setFontSize(value)}
               min={12}
               max={24}
               step={1}
@@ -73,7 +78,7 @@ function Settings({ themeMode, onThemeChange, fontSize, onFontSizeChange, zoom, 
             <Typography gutterBottom>{t('zoom')}</Typography>
             <Slider
               value={zoom}
-              onChange={(_, value) => onZoomChange(value)}
+              onChange={(_, value) => setZoom(value)}
               min={50}
               max={200}
               step={10}
@@ -88,4 +93,4 @@ function Settings({ themeMode, onThemeChange, fontSize, onFontSizeChange, zoom, 
   );
 }
 
-export default Settings; 
+export default Settings;

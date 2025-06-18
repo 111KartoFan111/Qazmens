@@ -135,16 +135,7 @@ const KrishaLayout = ({ children, currentPage = 'dashboard', breadcrumbs = [] })
                 mr: 1
               }}
             >
-              Valuation
-            </Typography>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 'bold',
-                color: '#2196F3'
-              }}
-            >
-              Pro
+              Qazmen's
             </Typography>
           </Box>
 

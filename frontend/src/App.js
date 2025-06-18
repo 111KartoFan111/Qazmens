@@ -1,6 +1,6 @@
 // frontend/src/App.js
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -228,29 +228,27 @@ function App() {
       <LocalizationProvider dateAdapter={AdapterDateFns}>
         <AuthProvider>
           <NotificationProvider>
-            <Router>
-              <Routes>
-                {/* Публичные маршруты */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                
-                {/* Защищенные маршруты */}
-                <Route
-                  path="/dashboard/*"
-                  element={
-                    <ProtectedRoute>
-                      <MainDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                
-                {/* Маршрут по умолчанию */}
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                
-                {/* Обработка неизвестных маршрутов */}
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
-              </Routes>
-            </Router>
+            <Routes>
+              {/* Публичные маршруты */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
+              {/* Защищенные маршруты */}
+              <Route
+                path="/dashboard/*"
+                element={
+                  <ProtectedRoute>
+                    <MainDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              
+              {/* Маршрут по умолчанию */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              
+              {/* Обработка неизвестных маршрутов */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
           </NotificationProvider>
         </AuthProvider>
       </LocalizationProvider>

@@ -13,6 +13,7 @@ from services.export_service import export_service
 from services.user_service import user_service
 from datetime import datetime
 from auth import router as auth_router
+from routes import adjustments
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
@@ -34,6 +35,7 @@ app.add_middleware(
 
 # Include auth router
 app.include_router(auth_router)
+app.include_router(adjustments.router)
 
 # Property endpoints
 @app.post("/api/properties/", response_model=schemas.Property)

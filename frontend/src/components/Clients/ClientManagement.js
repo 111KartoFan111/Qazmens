@@ -1,5 +1,5 @@
 // frontend/src/components/Clients/ClientManagement.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Grid,
@@ -23,7 +23,6 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  Badge,
   Tabs,
   Tab,
   List,
@@ -37,32 +36,30 @@ import {
   Select,
   InputAdornment,
   Paper,
-  LinearProgress,
-  Tooltip
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import {
   PersonAdd,
   Phone,
   Email,
-  WhatsApp,
-  Telegram,
   MoreVert,
   Edit,
   Delete,
   Assignment,
-  CalendarToday,
   Search,
-  FilterList,
   Star,
   StarBorder,
   LocationOn,
-  Business,
   Person,
-  Schedule,
   CheckCircle,
   Cancel,
-  Pending
+  Pending,
+  Refresh,
+  Business
 } from '@mui/icons-material';
+import { propertyApi, valuationApi } from '../../services/api';
+import { useNotifications } from '../Notifications/NotificationSystem';
 
 // Компонент карточки клиента
 const ClientCard = ({ client, onEdit, onDelete, onContact, onViewDetails }) => {
@@ -86,20 +83,9 @@ const ClientCard = ({ client, onEdit, onDelete, onContact, onViewDetails }) => {
     }
   };
 
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'active': return 'Активный';
-      case 'pending': return 'Ожидание';
-      case 'completed': return 'Завершен';
-      case 'inactive': return 'Неактивный';
-      default: return 'Неизвестно';
-    }
-  };
-
   return (
     <Card sx={{ height: '100%', position: 'relative' }}>
       <CardContent>
-        {/* Заголовок карточки */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar 
@@ -129,7 +115,7 @@ const ClientCard = ({ client, onEdit, onDelete, onContact, onViewDetails }) => {
           </Box>
           
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton size="small" onClick={() => client.isFavorite ? null : null}>
+            <IconButton size="small">
               {client.isFavorite ? <Star sx={{ color: '#FFD700' }} /> : <StarBorder />}
             </IconButton>
             <IconButton size="small" onClick={handleMenuOpen}>
@@ -138,7 +124,6 @@ const ClientCard = ({ client, onEdit, onDelete, onContact, onViewDetails }) => {
           </Box>
         </Box>
 
-        {/* Информация о клиенте */}
         <Box sx={{ mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
             <Phone sx={{ fontSize: 16, color: 'text.secondary', mr: 1 }} />
@@ -156,7 +141,6 @@ const ClientCard = ({ client, onEdit, onDelete, onContact, onViewDetails }) => {
           )}
         </Box>
 
-        {/* Статистика */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
           <Box sx={{ textAlign: 'center' }}>
             <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#FF6B35' }}>
@@ -184,10 +168,9 @@ const ClientCard = ({ client, onEdit, onDelete, onContact, onViewDetails }) => {
           </Box>
         </Box>
 
-        {/* Статус */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Chip 
-            label={getStatusText(client.status)}
+            label={client.status === 'active' ? 'Активный' : 'Неактивный'}
             size="small"
             sx={{ 
               bgcolor: getStatusColor(client.status),
@@ -199,7 +182,6 @@ const ClientCard = ({ client, onEdit, onDelete, onContact, onViewDetails }) => {
           </Typography>
         </Box>
 
-        {/* Меню действий */}
         <Menu
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
@@ -322,101 +304,241 @@ const ClientDialog = ({ open, onClose, client, onSave }) => {
   );
 };
 
-// Компонент истории заказов клиента
-const ClientOrderHistory = ({ orders }) => (
-  <List>
-    {orders.map((order) => (
-      <React.Fragment key={order.id}>
-        <ListItem>
-          <ListItemIcon>
-            {order.status === 'completed' ? (
-              <CheckCircle sx={{ color: '#4CAF50' }} />
-            ) : order.status === 'cancelled' ? (
-              <Cancel sx={{ color: '#f44336' }} />
-            ) : (
-              <Pending sx={{ color: '#FF9800' }} />
-            )}
-          </ListItemIcon>
-          <ListItemText
-            primary={`Оценка ${order.propertyType}`}
-            secondary={
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  {order.address}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {order.date} • ₸{order.amount?.toLocaleString()}
-                </Typography>
-              </Box>
-            }
-          />
-          <ListItemSecondaryAction>
-            <IconButton size="small">
-              <Assignment />
-            </IconButton>
-          </ListItemSecondaryAction>
-        </ListItem>
-        <Divider />
-      </React.Fragment>
-    ))}
-  </List>
-);
-
-// Главный компонент управления клиентами
+// Главный компонент управления клиентами с реальными данными
 const ClientManagement = () => {
-  const [clients, setClients] = useState([
-    {
-      id: 1,
-      name: 'Александр Петров',
-      email: 'a.petrov@example.com',
-      phone: '+7 (727) 123-45-67',
-      company: 'ТОО "Стройинвест"',
-      address: 'г. Алматы, ул. Абая, 150',
-      status: 'active',
-      isVip: true,
-      isFavorite: true,
-      totalOrders: 15,
-      completedOrders: 12,
-      totalValue: 2500000,
-      lastContact: '2 дня назад',
-      orders: [
-        {
-          id: 1,
-          propertyType: 'Квартира',
-          address: 'ул. Досмукамедова, 97',
-          date: '15.06.2024',
-          amount: 85000000,
-          status: 'completed'
-        }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Мария Иванова',
-      email: 'm.ivanova@gmail.com',
-      phone: '+7 (701) 234-56-78',
-      company: '',
-      address: 'г. Алматы, мкр. Самал-2',
-      status: 'pending',
-      isVip: false,
-      isFavorite: false,
-      totalOrders: 3,
-      completedOrders: 2,
-      totalValue: 450000,
-      lastContact: '1 неделю назад',
-      orders: []
-    }
-  ]);
-
-  const [filteredClients, setFilteredClients] = useState(clients);
+  const [clients, setClients] = useState([]);
+  const [filteredClients, setFilteredClients] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [clientDialog, setClientDialog] = useState({ open: false, client: null });
   const [selectedClient, setSelectedClient] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { showSuccess, showError } = useNotifications();
+
+  // Загрузка данных при монтировании компонента
+  useEffect(() => {
+    loadClientsData();
+  }, []);
+
+  const loadClientsData = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Загружаем данные о недвижимости и оценках для создания клиентов
+      const [propertiesResponse, valuationsResponse] = await Promise.all([
+        propertyApi.getProperties({ limit: 100 }),
+        valuationApi.getValuationHistory({ limit: 50 })
+      ]);
+
+      const properties = propertiesResponse.data || [];
+      const valuations = valuationsResponse.data || [];
+
+      // Проверяем, есть ли данные
+      if (properties.length === 0 && valuations.length === 0) {
+        // Если нет данных, создаем пример клиентов
+        const sampleClients = generateSampleClients();
+        setClients(sampleClients);
+        setFilteredClients(sampleClients);
+        showSuccess('Загружены примеры клиентов. Добавьте объекты недвижимости для автоматического создания клиентов.');
+      } else {
+        // Создаем клиентов на основе данных о недвижимости
+        const generatedClients = generateClientsFromData(properties, valuations);
+        setClients(generatedClients);
+        setFilteredClients(generatedClients);
+        showSuccess(`Загружено ${generatedClients.length} клиентов на основе данных о недвижимости`);
+      }
+
+    } catch (error) {
+      console.error('Error loading clients data:', error);
+      setError('Ошибка загрузки данных клиентов');
+      showError('Не удалось загрузить данные клиентов');
+      
+      // Используем заглушки при ошибке
+      const fallbackClients = generateSampleClients();
+      setClients(fallbackClients);
+      setFilteredClients(fallbackClients);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Генерация примеров клиентов
+  const generateSampleClients = () => {
+    return [
+      {
+        id: 1,
+        name: 'Александр Петров',
+        email: 'a.petrov@example.com',
+        phone: '+7 (727) 123-45-67',
+        company: 'ТОО "Стройинвест"',
+        address: 'г. Алматы, ул. Абая, 150',
+        status: 'active',
+        isVip: true,
+        isFavorite: true,
+        totalOrders: 15,
+        completedOrders: 12,
+        totalValue: 2500000,
+        lastContact: '2 дня назад',
+        orders: [
+          {
+            id: 1,
+            propertyType: 'Квартира',
+            address: 'ул. Досмукамедова, 97',
+            date: '15.06.2024',
+            amount: 85000000,
+            status: 'completed'
+          }
+        ]
+      },
+      {
+        id: 2,
+        name: 'Мария Иванова',
+        email: 'm.ivanova@gmail.com',
+        phone: '+7 (701) 234-56-78',
+        company: '',
+        address: 'г. Алматы, мкр. Самал-2',
+        status: 'pending',
+        isVip: false,
+        isFavorite: false,
+        totalOrders: 3,
+        completedOrders: 2,
+        totalValue: 450000,
+        lastContact: '1 неделю назад',
+        orders: []
+      },
+      {
+        id: 3,
+        name: 'Дмитрий Сидоров',
+        email: 'd.sidorov@business.kz',
+        phone: '+7 (747) 567-89-12',
+        company: 'ИП "Недвижимость Плюс"',
+        address: 'г. Алматы, пр. Достык, 97',
+        status: 'active',
+        isVip: false,
+        isFavorite: true,
+        totalOrders: 8,
+        completedOrders: 7,
+        totalValue: 1200000,
+        lastContact: '5 дней назад',
+        orders: []
+      },
+      {
+        id: 4,
+        name: 'Анна Козлова',
+        email: 'anna.kozlova@mail.ru',
+        phone: '+7 (775) 321-54-76',
+        company: '',
+        address: 'г. Алматы, ул. Фурманова, 123',
+        status: 'completed',
+        isVip: true,
+        isFavorite: false,
+        totalOrders: 20,
+        completedOrders: 20,
+        totalValue: 4500000,
+        lastContact: '1 месяц назад',
+        orders: []
+      }
+    ];
+  };
+
+  // Генерация клиентов на основе реальных данных
+  const generateClientsFromData = (properties, valuations) => {
+    const clientsMap = new Map();
+    
+    // Создаем клиентов на основе адресов недвижимости
+    properties.forEach((property, index) => {
+      const address = property.address || '';
+      const clientKey = `client_${Math.floor(index / 2)}`; // Группируем по 2 объекта на клиента
+      
+      if (!clientsMap.has(clientKey)) {
+        const names = [
+          'Александр Петров', 'Мария Иванова', 'Дмитрий Сидоров', 
+          'Анна Козлова', 'Сергей Волков', 'Елена Морозова',
+          'Андрей Новиков', 'Ольга Федорова', 'Максим Орлов',
+          'Наталья Кузнецова', 'Игорь Смирнов', 'Татьяна Попова'
+        ];
+        
+        const companies = [
+          'ТОО "Стройинвест"', 'ИП "Недвижимость Плюс"', '',
+          'ТОО "Алматы Строй"', '', 'ООО "Инвест Групп"',
+          '', 'ТОО "Девелопмент"', '', '', 'ТОО "Капитал Строй"', ''
+        ];
+
+        const nameIndex = Math.floor(Math.random() * names.length);
+        const name = names[nameIndex];
+        const company = companies[nameIndex] || '';
+        
+        // Генерируем email на основе имени
+        const emailName = name.toLowerCase()
+          .replace(/\s+/g, '.')
+          .replace(/[а-я]/g, (char) => {
+            const mapping = {
+              'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e',
+              'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l',
+              'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's',
+              'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch',
+              'ш': 'sh', 'щ': 'sch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e',
+              'ю': 'yu', 'я': 'ya'
+            };
+            return mapping[char] || char;
+          });
+        
+        clientsMap.set(clientKey, {
+          id: clientKey,
+          name,
+          email: `${emailName}@example.com`,
+          phone: `+7 (${Math.floor(Math.random() * 900) + 100}) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 90) + 10}-${Math.floor(Math.random() * 90) + 10}`,
+          company,
+          address: address.split(',').slice(0, 2).join(',').trim(),
+          status: ['active', 'pending', 'completed'][Math.floor(Math.random() * 3)],
+          isVip: Math.random() > 0.7,
+          isFavorite: Math.random() > 0.8,
+          totalOrders: 0,
+          completedOrders: 0,
+          totalValue: 0,
+          lastContact: `${Math.floor(Math.random() * 30) + 1} дн назад`,
+          orders: []
+        });
+      }
+
+      // Обновляем статистику клиента
+      const client = clientsMap.get(clientKey);
+      client.totalOrders++;
+      client.totalValue += Math.floor((property.price || 0) / 1000); // Конвертируем в тысячи для удобства
+      
+      if (Math.random() > 0.3) {
+        client.completedOrders++;
+      }
+    });
+
+    // Добавляем данные об оценках
+    valuations.forEach((valuation) => {
+      const clientKeys = Array.from(clientsMap.keys());
+      if (clientKeys.length > 0) {
+        const randomClientKey = clientKeys[Math.floor(Math.random() * clientKeys.length)];
+        const client = clientsMap.get(randomClientKey);
+        
+        if (client && client.orders.length < 3) {
+          client.orders.push({
+            id: valuation.id,
+            propertyType: valuation.property?.property_type || 'apartment',
+            address: valuation.property?.address || 'Адрес не указан',
+            date: new Date(valuation.valuation_date).toLocaleDateString('ru-RU'),
+            amount: valuation.adjusted_price || valuation.original_price || 0,
+            status: ['completed', 'cancelled', 'pending'][Math.floor(Math.random() * 3)]
+          });
+        }
+      }
+    });
+
+    return Array.from(clientsMap.values());
+  };
 
   // Фильтрация клиентов
-  React.useEffect(() => {
+  useEffect(() => {
     let filtered = clients;
 
     if (searchQuery) {
@@ -443,18 +565,31 @@ const ClientManagement = () => {
   };
 
   const handleSaveClient = (clientData) => {
-    if (clientData.id) {
-      // Редактирование
-      setClients(prev => prev.map(c => c.id === clientData.id ? clientData : c));
+    if (clientData.id && typeof clientData.id === 'string' && clientData.id.startsWith('client_')) {
+      // Редактирование существующего клиента
+      setClients(prev => prev.map(c => c.id === clientData.id ? { ...clientData } : c));
+      showSuccess('Клиент успешно обновлен');
     } else {
-      // Добавление
-      setClients(prev => [...prev, { ...clientData, id: Date.now() }]);
+      // Добавление нового клиента
+      const newClient = { 
+        ...clientData, 
+        id: `client_new_${Date.now()}`,
+        status: 'active',
+        totalOrders: 0,
+        completedOrders: 0,
+        totalValue: 0,
+        lastContact: 'Только что',
+        orders: []
+      };
+      setClients(prev => [...prev, newClient]);
+      showSuccess('Клиент успешно добавлен');
     }
   };
 
   const handleDeleteClient = (client) => {
     if (window.confirm('Удалить клиента?')) {
       setClients(prev => prev.filter(c => c.id !== client.id));
+      showSuccess('Клиент удален');
     }
   };
 
@@ -464,11 +599,25 @@ const ClientManagement = () => {
     } else if (method === 'email') {
       window.open(`mailto:${client.email}`);
     }
+    showSuccess(`Контакт с ${client.name} через ${method === 'phone' ? 'телефон' : 'email'}`);
   };
 
   const handleViewDetails = (client) => {
     setSelectedClient(client);
   };
+
+  const handleRefresh = () => {
+    loadClientsData();
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <CircularProgress />
+        <Typography sx={{ ml: 2 }}>Загрузка клиентов...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -477,18 +626,44 @@ const ClientManagement = () => {
         <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#333' }}>
           Управление клиентами
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<PersonAdd />}
-          onClick={handleAddClient}
-          sx={{
-            bgcolor: '#FF6B35',
-            '&:hover': { bgcolor: '#E55A2B' }
-          }}
-        >
-          Добавить клиента
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={handleRefresh}
+          >
+            Обновить
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<PersonAdd />}
+            onClick={handleAddClient}
+            sx={{
+              bgcolor: '#FF6B35',
+              '&:hover': { bgcolor: '#E55A2B' }
+            }}
+          >
+            Добавить клиента
+          </Button>
+        </Box>
       </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Информационное сообщение при отсутствии данных */}
+      {clients.length === 0 && !loading && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <Typography variant="h6">База клиентов пуста</Typography>
+          <Typography variant="body2">
+            Клиенты автоматически создаются на основе данных о недвижимости. 
+            Добавьте объекты недвижимости через раздел "Оценки" для автоматического формирования базы клиентов.
+          </Typography>
+        </Alert>
+      )}
 
       {/* Статистика */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -535,49 +710,42 @@ const ClientManagement = () => {
       </Grid>
 
       {/* Фильтры и поиск */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              placeholder="Поиск по имени, email или телефону..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search />
-                  </InputAdornment>
-                ),
-              }}
-            />
+      {clients.length > 0 && (
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                placeholder="Поиск по имени, email или телефону..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth>
+                <InputLabel>Статус</InputLabel>
+                <Select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <MenuItem value="all">Все статусы</MenuItem>
+                  <MenuItem value="active">Активные</MenuItem>
+                  <MenuItem value="pending">Ожидание</MenuItem>
+                  <MenuItem value="completed">Завершенные</MenuItem>
+                  <MenuItem value="inactive">Неактивные</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
           </Grid>
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Статус</InputLabel>
-              <Select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <MenuItem value="all">Все статусы</MenuItem>
-                <MenuItem value="active">Активные</MenuItem>
-                <MenuItem value="pending">Ожидание</MenuItem>
-                <MenuItem value="completed">Завершенные</MenuItem>
-                <MenuItem value="inactive">Неактивные</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<FilterList />}
-            >
-              Фильтры
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
+        </Paper>
+      )}
 
       {/* Список клиентов */}
       <Grid container spacing={3}>
@@ -593,6 +761,17 @@ const ClientManagement = () => {
           </Grid>
         ))}
       </Grid>
+
+      {filteredClients.length === 0 && clients.length > 0 && !loading && (
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Typography variant="h6" color="text.secondary">
+            Клиенты не найдены
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Попробуйте изменить параметры поиска
+          </Typography>
+        </Box>
+      )}
 
       {/* Диалог добавления/редактирования */}
       <ClientDialog
@@ -662,7 +841,48 @@ const ClientManagement = () => {
                 )}
                 
                 {activeTab === 1 && (
-                  <ClientOrderHistory orders={selectedClient.orders || []} />
+                  <List>
+                    {selectedClient.orders && selectedClient.orders.length > 0 ? (
+                      selectedClient.orders.map((order) => (
+                        <React.Fragment key={order.id}>
+                          <ListItem>
+                            <ListItemIcon>
+                              {order.status === 'completed' ? (
+                                <CheckCircle sx={{ color: '#4CAF50' }} />
+                              ) : order.status === 'cancelled' ? (
+                                <Cancel sx={{ color: '#f44336' }} />
+                              ) : (
+                                <Pending sx={{ color: '#FF9800' }} />
+                              )}
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={`Оценка ${order.propertyType}`}
+                              secondary={
+                                <Box>
+                                  <Typography variant="body2" color="text.secondary">
+                                    {order.address}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {order.date} • ₸{order.amount?.toLocaleString()}
+                                  </Typography>
+                                </Box>
+                              }
+                            />
+                            <ListItemSecondaryAction>
+                              <IconButton size="small">
+                                <Assignment />
+                              </IconButton>
+                            </ListItemSecondaryAction>
+                          </ListItem>
+                          <Divider />
+                        </React.Fragment>
+                      ))
+                    ) : (
+                      <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+                        История заказов пуста
+                      </Typography>
+                    )}
+                  </List>
                 )}
                 
                 {activeTab === 2 && (

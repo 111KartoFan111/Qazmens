@@ -135,7 +135,7 @@ function Analytics({ subjectProperty, comparableProperties, adjustments }) {
               <ScatterChart>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="area" name={t('area')} unit="m²" />
-                <YAxis dataKey="price" name={t('price')} unit="$" />
+                <YAxis dataKey="price" name={t('price')} unit="₸" />
                 <Tooltip cursor={{ strokeDasharray: '3 3' }} />
                 <Legend />
                 <Scatter
@@ -170,7 +170,7 @@ function Analytics({ subjectProperty, comparableProperties, adjustments }) {
               <LineChart data={distancePriceData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="distance" name={t('distance')} unit="km" />
-                <YAxis dataKey="price" name={t('price')} unit="$" />
+                <YAxis dataKey="price" name={t('price')} unit="₸" />
                 <Tooltip />
                 <Legend />
                 <Line
